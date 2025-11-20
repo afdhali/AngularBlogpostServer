@@ -1,0 +1,38 @@
+/* Profile Component Styles */
+
+:host {
+  display: block;
+}
+
+/* Smooth entrance animation */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Input focus animation */
+input:focus,
+textarea:focus {
+  transform: scale(1.01);
+  transition: transform 0.2s ease;
+}
+
+/* Button hover effect */
+button[type='submit']:not(:disabled):hover {
+  transform: translateY(-2px);
+}
+
+button[type='submit']:not(:disabled):active {
+  transform: translateY(0);
+}
+
+/* Avatar upload preview */
+img {
+  animation: fadeIn 0.3s ease-in-out;
+}

@@ -1,0 +1,103 @@
+<div
+  class="min-h-screen bg-linear-to-br from-blue-50 via-purple-50 to-pink-50 flex items-center justify-center px-4"
+>
+  <div class="max-w-4xl w-full text-center">
+    <!-- Animated 404 -->
+    <div class="relative mb-8">
+      <div class="text-[200px] md:text-[300px] font-bold leading-none opacity-10 select-none">
+        404
+      </div>
+      <div class="absolute inset-0 flex items-center justify-center">
+        <div class="floating">
+          <div class="text-9xl mb-4">🔍</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Error Message -->
+    <div class="mb-12">
+      <h1
+        class="text-4xl md:text-6xl font-bold mb-4 bg-linear-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent"
+      >
+        Oops! Page Not Found
+      </h1>
+      <p class="text-xl md:text-2xl text-gray-600 mb-6">
+        The page you're looking for seems to have wandered off...
+      </p>
+      <p class="text-gray-500 max-w-2xl mx-auto">
+        Don't worry though! You can find plenty of other things on our homepage or try searching for
+        what you need.
+      </p>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12">
+      <button
+        (click)="goHome()"
+        class="px-8 py-4 bg-linear-to-r from-blue-600 to-purple-600 text-white text-lg font-semibold rounded-xl hover:shadow-2xl hover:scale-105 transition-all duration-200 flex items-center gap-2"
+      >
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
+          />
+        </svg>
+        <span>Go Home</span>
+      </button>
+
+      <button
+        (click)="goBack()"
+        class="px-8 py-4 bg-white text-gray-700 text-lg font-semibold rounded-xl border-2 border-gray-200 hover:border-blue-600 hover:text-blue-600 transition-all duration-200 flex items-center gap-2"
+      >
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M10 19l-7-7m0 0l7-7m-7 7h18"
+          />
+        </svg>
+        <span>Go Back</span>
+      </button>
+    </div>
+
+    <!-- Quick Links -->
+    <div class="mb-8">
+      <p class="text-sm font-semibold text-gray-600 mb-4 uppercase tracking-wide">
+        Or try these pages
+      </p>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        @for (suggestion of suggestions; track suggestion.route) {
+        <a
+          [routerLink]="suggestion.route"
+          class="group p-6 bg-white rounded-2xl border-2 border-gray-200 hover:border-blue-500 hover:shadow-lg transition-all duration-200"
+        >
+          <div class="text-4xl mb-2 group-hover:scale-110 transition-transform">
+            {{ suggestion.icon }}
+          </div>
+          <div class="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
+            {{ suggestion.label }}
+          </div>
+        </a>
+        }
+      </div>
+    </div>
+
+    <!-- Fun Facts -->
+    <div
+      class="bg-white/80 backdrop-blur-sm rounded-2xl p-8 border border-gray-200 max-w-2xl mx-auto"
+    >
+      <div class="text-2xl mb-2">💡</div>
+      <h3 class="font-bold text-gray-900 mb-2">Did you know?</h3>
+      <p class="text-gray-600">
+        HTTP 404 is the standard response code when a server can't find the requested resource. The
+        "404" code was named after room 404 at CERN where the World Wide Web was invented!
+      </p>
+    </div>
+
+    <!-- Error Code -->
+    <div class="mt-8 text-sm text-gray-400">Error Code: 404 | Page Not Found</div>
+  </div>
+</div>
