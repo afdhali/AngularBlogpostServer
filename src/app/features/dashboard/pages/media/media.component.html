@@ -1,0 +1,596 @@
+<!-- media.component.html -->
+<div class="min-h-screen bg-gray-50">
+  <!-- Header -->
+  <header class="bg-linear-to-r from-purple-600 to-pink-600 text-white py-8 shadow-lg">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between items-center">
+        <div>
+          <h1 class="text-4xl font-bold mb-2">🎨 Media Gallery</h1>
+          <p class="text-purple-100">Manage your media files and assets</p>
+        </div>
+
+        <div class="flex gap-4">
+          <!-- View Mode Toggle -->
+          <button
+            (click)="toggleViewMode()"
+            class="px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors"
+            title="Toggle view mode"
+          >
+            @if (viewMode() === 'grid') { 📋 List View } @else { 🔲 Grid View }
+          </button>
+
+          <!-- Upload Button (RBAC: Authenticated users only) -->
+          @if (canUpload()) {
+          <button
+            (click)="openUploadModal()"
+            class="px-6 py-2 bg-white text-purple-600 rounded-lg hover:bg-purple-50 transition-colors font-semibold"
+          >
+            ⬆️ Upload Media
+          </button>
+          } @else {
+          <button
+            (click)="openUploadModal()"
+            class="px-6 py-2 bg-white/10 text-white rounded-lg cursor-not-allowed opacity-50"
+            disabled
+            title="Login required"
+          >
+            🔒 Upload Media
+          </button>
+          }
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- ✅ Stats Section with @defer loading -->
+    @defer (when statsReady()) {
+    <section class="mb-8">
+      <h2 class="text-2xl font-bold text-gray-800 mb-4">📊 Statistics</h2>
+      <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+        <div class="bg-white rounded-lg shadow p-4 text-center">
+          <div class="text-3xl font-bold text-blue-600">{{ stats().total }}</div>
+          <div class="text-sm text-gray-600">Total Media</div>
+        </div>
+        <div class="bg-white rounded-lg shadow p-4 text-center">
+          <div class="text-3xl font-bold text-green-600">{{ stats().images }}</div>
+          <div class="text-sm text-gray-600">Images</div>
+        </div>
+        <div class="bg-white rounded-lg shadow p-4 text-center">
+          <div class="text-3xl font-bold text-red-600">{{ stats().videos }}</div>
+          <div class="text-sm text-gray-600">Videos</div>
+        </div>
+        <div class="bg-white rounded-lg shadow p-4 text-center">
+          <div class="text-3xl font-bold text-purple-600">{{ stats().audios }}</div>
+          <div class="text-sm text-gray-600">Audios</div>
+        </div>
+        <div class="bg-white rounded-lg shadow p-4 text-center">
+          <div class="text-3xl font-bold text-orange-600">{{ stats().documents }}</div>
+          <div class="text-sm text-gray-600">Documents</div>
+        </div>
+      </div>
+    </section>
+    } @placeholder {
+    <section class="mb-8">
+      <div class="bg-white rounded-lg shadow p-6">
+        <div class="animate-pulse flex space-x-4">
+          <div class="h-12 bg-gray-200 rounded w-full"></div>
+        </div>
+      </div>
+    </section>
+    } @loading (minimum 1000ms) {
+    <section class="mb-8">
+      <div class="bg-white rounded-lg shadow p-6">
+        <div class="text-center text-gray-500">
+          <div
+            class="animate-spin inline-block w-8 h-8 border-4 border-purple-600 border-t-transparent rounded-full mb-2"
+          ></div>
+          <p>Loading statistics...</p>
+        </div>
+      </div>
+    </section>
+    } @error {
+    <section class="mb-8">
+      <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+        Failed to load statistics
+      </div>
+    </section>
+    }
+
+    <!-- Filters -->
+    <section class="mb-6">
+      <div class="bg-white rounded-lg shadow p-4">
+        <div class="flex flex-wrap gap-2">
+          <button
+            (click)="onFilterChange('all')"
+            [class.bg-purple-600]="selectedMediaType() === 'all'"
+            [class.text-white]="selectedMediaType() === 'all'"
+            [class.bg-gray-100]="selectedMediaType() !== 'all'"
+            class="px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors"
+          >
+            All ({{ stats().total }})
+          </button>
+          <button
+            (click)="onFilterChange('image')"
+            [class.bg-purple-600]="selectedMediaType() === 'image'"
+            [class.text-white]="selectedMediaType() === 'image'"
+            [class.bg-gray-100]="selectedMediaType() !== 'image'"
+            class="px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors"
+          >
+            🖼️ Images ({{ stats().images }})
+          </button>
+          <button
+            (click)="onFilterChange('video')"
+            [class.bg-purple-600]="selectedMediaType() === 'video'"
+            [class.text-white]="selectedMediaType() === 'video'"
+            [class.bg-gray-100]="selectedMediaType() !== 'video'"
+            class="px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors"
+          >
+            🎥 Videos ({{ stats().videos }})
+          </button>
+          <button
+            (click)="onFilterChange('audio')"
+            [class.bg-purple-600]="selectedMediaType() === 'audio'"
+            [class.text-white]="selectedMediaType() === 'audio'"
+            [class.bg-gray-100]="selectedMediaType() !== 'audio'"
+            class="px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors"
+          >
+            🎵 Audios ({{ stats().audios }})
+          </button>
+          <button
+            (click)="onFilterChange('document')"
+            [class.bg-purple-600]="selectedMediaType() === 'document'"
+            [class.text-white]="selectedMediaType() === 'document'"
+            [class.bg-gray-100]="selectedMediaType() !== 'document'"
+            class="px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors"
+          >
+            📄 Documents ({{ stats().documents }})
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Error Message -->
+    @if (error()) {
+    <div class="mb-6 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+      {{ error() }}
+    </div>
+    }
+
+    <!-- Loading State -->
+    @if (isLoading()) {
+    <div class="text-center py-12">
+      <div
+        class="animate-spin inline-block w-12 h-12 border-4 border-purple-600 border-t-transparent rounded-full mb-4"
+      ></div>
+      <p class="text-gray-600">Loading media...</p>
+    </div>
+    }
+
+    <!-- Media Grid/List with @defer per item -->
+    @if (!isLoading()) {
+    <!-- Grid View -->
+    @if (viewMode() === 'grid') {
+    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+      @for (media of filteredMedia(); track media.id) {
+      <!-- ✅ @defer loading untuk setiap media card -->
+      @defer (on viewport) {
+      <div
+        class="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow group"
+      >
+        <!-- Media Preview -->
+        <div class="relative aspect-square bg-gray-100 overflow-hidden">
+          @if (media.media_type === 'image') {
+          <!-- ✅ NgOptimizedImage untuk image optimization -->
+          <img
+            [ngSrc]="media.url"
+            [alt]="media.alt_text || media.original_name"
+            [width]="400"
+            [height]="400"
+            [priority]="false"
+            class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+            loading="lazy"
+          />
+          } @else {
+          <div class="w-full h-full flex items-center justify-center text-6xl">
+            {{ getMediaIcon(media.media_type) }}
+          </div>
+          }
+
+          <!-- Featured Badge -->
+          @if (media.is_featured) {
+          <div
+            class="absolute top-2 right-2 bg-yellow-500 text-white px-2 py-1 rounded-lg text-xs font-bold"
+          >
+            ⭐ Featured
+          </div>
+          }
+        </div>
+
+        <!-- Media Info -->
+        <div class="p-4">
+          <h3 class="font-semibold text-gray-800 truncate mb-1" [title]="media.original_name">
+            {{ media.original_name }}
+          </h3>
+          <p class="text-sm text-gray-600 mb-2">{{ formatFileSize(media.size) }}</p>
+          @if (media.user) {
+          <p class="text-xs text-gray-500 mb-3">
+            Uploaded by {{ media.user.full_name }} @if (media.created_at) {
+            {{ formatDate(media.created_at) }} }
+          </p>
+          } @else if (media.created_at) {
+          <p class="text-xs text-gray-500 mb-3">{{ formatDate(media.created_at) }}</p>
+          }
+
+          <!-- Actions (RBAC: Owner or Admin only) -->
+          <div class="flex gap-2">
+            <a
+              [href]="media.url"
+              target="_blank"
+              class="flex-1 px-3 py-1 bg-blue-500 text-white text-sm rounded hover:bg-blue-600 transition-colors text-center"
+            >
+              👁️ View
+            </a>
+
+            @if (isAuthenticated() && media.user && (currentUser()?.id === media.user.id ||
+            isAdmin())) {
+            <button
+              (click)="openEditModal(media)"
+              class="px-3 py-1 bg-green-500 text-white text-sm rounded hover:bg-green-600 transition-colors"
+            >
+              ✏️
+            </button>
+            <button
+              (click)="openDeleteConfirm(media)"
+              class="px-3 py-1 bg-red-500 text-white text-sm rounded hover:bg-red-600 transition-colors"
+            >
+              🗑️
+            </button>
+            }
+          </div>
+        </div>
+      </div>
+      } @placeholder {
+      <div class="bg-white rounded-lg shadow-lg overflow-hidden animate-pulse">
+        <div class="aspect-square bg-gray-200"></div>
+        <div class="p-4 space-y-2">
+          <div class="h-4 bg-gray-200 rounded w-3/4"></div>
+          <div class="h-3 bg-gray-200 rounded w-1/2"></div>
+        </div>
+      </div>
+      } @loading (minimum 500ms) {
+      <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+        <div class="aspect-square bg-gray-100 flex items-center justify-center">
+          <div
+            class="animate-spin w-8 h-8 border-4 border-purple-600 border-t-transparent rounded-full"
+          ></div>
+        </div>
+      </div>
+      } }
+    </div>
+    }
+
+    <!-- List View -->
+    @if (viewMode() === 'list') {
+    <div class="space-y-4">
+      @for (media of filteredMedia(); track media.id) { @defer (on viewport) {
+      <div class="bg-white rounded-lg shadow p-4 flex gap-4 hover:shadow-lg transition-shadow">
+        <!-- Thumbnail -->
+        <div class="w-24 h-24 bg-gray-100 rounded overflow-hidden shrink-0">
+          @if (media.media_type === 'image') {
+          <img
+            [ngSrc]="media.url"
+            [alt]="media.alt_text || media.original_name"
+            [width]="96"
+            [height]="96"
+            class="w-full h-full object-cover"
+            loading="lazy"
+          />
+          } @else {
+          <div class="w-full h-full flex items-center justify-center text-3xl">
+            {{ getMediaIcon(media.media_type) }}
+          </div>
+          }
+        </div>
+
+        <!-- Info -->
+        <div class="flex-1">
+          <div class="flex justify-between items-start mb-2">
+            <div>
+              <h3 class="font-semibold text-gray-800">{{ media.original_name }}</h3>
+              <p class="text-sm text-gray-600">
+                {{ media.mime_type }} • {{ formatFileSize(media.size) }}
+              </p>
+            </div>
+            @if (media.is_featured) {
+            <span class="bg-yellow-500 text-white px-2 py-1 rounded text-xs font-bold"
+              >⭐ Featured</span
+            >
+            }
+          </div>
+          <p class="text-sm text-gray-700 mb-2">{{ media.description || 'No description' }}</p>
+          @if (media.user) {
+          <p class="text-xs text-gray-500">
+            Uploaded by {{ media.user.full_name }} @if (media.created_at) { •
+            {{ formatDate(media.created_at) }} }
+          </p>
+          } @else if (media.created_at) {
+          <p class="text-xs text-gray-500">{{ formatDate(media.created_at) }}</p>
+          }
+        </div>
+
+        <!-- Actions -->
+        <div class="flex flex-col gap-2">
+          <a
+            [href]="media.url"
+            target="_blank"
+            class="px-4 py-2 bg-blue-500 text-white text-sm rounded hover:bg-blue-600 transition-colors text-center"
+          >
+            👁️ View
+          </a>
+          @if (isAuthenticated() && media.user && (currentUser()?.id === media.user.id ||
+          isAdmin())) {
+          <button
+            (click)="openEditModal(media)"
+            class="px-4 py-2 bg-green-500 text-white text-sm rounded hover:bg-green-600 transition-colors"
+          >
+            ✏️ Edit
+          </button>
+          <button
+            (click)="openDeleteConfirm(media)"
+            class="px-4 py-2 bg-red-500 text-white text-sm rounded hover:bg-red-600 transition-colors"
+          >
+            🗑️ Delete
+          </button>
+          }
+        </div>
+      </div>
+      } @placeholder {
+      <div class="bg-white rounded-lg shadow p-4 animate-pulse">
+        <div class="flex gap-4">
+          <div class="w-24 h-24 bg-gray-200 rounded"></div>
+          <div class="flex-1 space-y-2">
+            <div class="h-4 bg-gray-200 rounded w-3/4"></div>
+            <div class="h-3 bg-gray-200 rounded w-1/2"></div>
+          </div>
+        </div>
+      </div>
+      } }
+    </div>
+    }
+
+    <!-- Empty State -->
+    @if (filteredMedia().length === 0) {
+    <div class="text-center py-12">
+      <div class="text-6xl mb-4">📭</div>
+      <h3 class="text-xl font-semibold text-gray-700 mb-2">No media found</h3>
+      <p class="text-gray-600 mb-4">
+        @if (selectedMediaType() !== 'all') { Try selecting a different media type } @else { Upload
+        your first media file to get started }
+      </p>
+      @if (canUpload()) {
+      <button
+        (click)="openUploadModal()"
+        class="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+      >
+        ⬆️ Upload Media
+      </button>
+      }
+    </div>
+    } }
+
+    <!-- Pagination -->
+    @if (totalPages() > 1) {
+    <div class="mt-8 flex justify-center gap-2">
+      <button
+        (click)="previousPage()"
+        [disabled]="currentPage() === 1"
+        class="px-4 py-2 bg-white border rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        ← Previous
+      </button>
+
+      @for (page of [].constructor(totalPages()); track $index) {
+      <button
+        (click)="onPageChange($index + 1)"
+        [class.bg-purple-600]="currentPage() === $index + 1"
+        [class.text-white]="currentPage() === $index + 1"
+        class="px-4 py-2 bg-white border rounded-lg hover:bg-gray-50"
+      >
+        {{ $index + 1 }}
+      </button>
+      }
+
+      <button
+        (click)="nextPage()"
+        [disabled]="currentPage() === totalPages()"
+        class="px-4 py-2 bg-white border rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        Next →
+      </button>
+    </div>
+    }
+  </main>
+</div>
+
+<!-- Upload Modal -->
+@if (showUploadModal()) {
+<div class="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+  <div class="bg-white rounded-lg max-w-md w-full p-6">
+    <h2 class="text-2xl font-bold mb-4">⬆️ Upload Media</h2>
+
+    <div class="space-y-4">
+      <!-- File Input -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Select File *</label>
+        <input
+          type="file"
+          (change)="onFileSelected($event)"
+          accept="image/*,video/*,audio/*,.pdf,.doc,.docx"
+          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600"
+        />
+      </div>
+
+      <!-- Preview -->
+      @if (previewUrl()) {
+      <div class="border rounded-lg p-2">
+        <img [src]="previewUrl()!" alt="Preview" class="w-full h-48 object-contain" />
+      </div>
+      }
+
+      <!-- Alt Text -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Alt Text</label>
+        <input
+          type="text"
+          [(ngModel)]="altText"
+          maxlength="200"
+          placeholder="Descriptive text for accessibility"
+          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600"
+        />
+      </div>
+
+      <!-- Description -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Description</label>
+        <textarea
+          [(ngModel)]="description"
+          maxlength="500"
+          rows="3"
+          placeholder="Optional description"
+          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600"
+        ></textarea>
+      </div>
+
+      <!-- Featured Checkbox -->
+      <div class="flex items-center">
+        <input type="checkbox" id="featured" [(ngModel)]="isFeatured" class="rounded mr-2" />
+        <label for="featured" class="text-sm text-gray-700">Mark as featured</label>
+      </div>
+
+      <!-- Upload Progress -->
+      @if (isUploading()) {
+      <div class="space-y-2">
+        <div class="w-full bg-gray-200 rounded-full h-2">
+          <div
+            class="bg-purple-600 h-2 rounded-full transition-all duration-300"
+            [style.width.%]="uploadProgress()"
+          ></div>
+        </div>
+        <p class="text-sm text-center text-gray-600">Uploading... {{ uploadProgress() }}%</p>
+      </div>
+      }
+
+      <!-- Actions -->
+      <div class="flex gap-2 pt-4">
+        <button
+          (click)="closeUploadModal()"
+          [disabled]="isUploading()"
+          class="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+        >
+          Cancel
+        </button>
+        <button
+          (click)="onUpload()"
+          [disabled]="!selectedFile() || isUploading()"
+          class="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50"
+        >
+          {{ isUploading() ? 'Uploading...' : 'Upload' }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+}
+
+<!-- Edit Modal -->
+@if (showEditModal() && selectedMedia()) {
+<div class="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+  <div class="bg-white rounded-lg max-w-md w-full p-6">
+    <h2 class="text-2xl font-bold mb-4">✏️ Edit Media</h2>
+
+    <div class="space-y-4">
+      <!-- Current file info -->
+      <div class="bg-gray-50 p-3 rounded-lg">
+        <p class="text-sm font-medium text-gray-700">{{ selectedMedia()!.original_name }}</p>
+        <p class="text-xs text-gray-500">{{ formatFileSize(selectedMedia()!.size) }}</p>
+      </div>
+
+      <!-- Alt Text -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Alt Text</label>
+        <input
+          type="text"
+          [(ngModel)]="altText"
+          maxlength="200"
+          placeholder="Descriptive text for accessibility"
+          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600"
+        />
+      </div>
+
+      <!-- Description -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Description</label>
+        <textarea
+          [(ngModel)]="description"
+          maxlength="500"
+          rows="3"
+          placeholder="Optional description"
+          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600"
+        ></textarea>
+      </div>
+
+      <!-- Featured Checkbox -->
+      <div class="flex items-center">
+        <input type="checkbox" id="editFeatured" [(ngModel)]="isFeatured" class="rounded mr-2" />
+        <label for="editFeatured" class="text-sm text-gray-700">Mark as featured</label>
+      </div>
+
+      <!-- Actions -->
+      <div class="flex gap-2 pt-4">
+        <button
+          (click)="closeEditModal()"
+          class="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+        >
+          Cancel
+        </button>
+        <button
+          (click)="onUpdate()"
+          class="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+        >
+          Update
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+}
+
+<!-- Delete Confirmation Modal -->
+@if (showDeleteConfirm() && selectedMedia()) {
+<div class="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+  <div class="bg-white rounded-lg max-w-md w-full p-6">
+    <h2 class="text-2xl font-bold mb-4 text-red-600">🗑️ Delete Media</h2>
+
+    <p class="text-gray-700 mb-4">
+      Are you sure you want to delete <strong>{{ selectedMedia()!.original_name }}</strong
+      >? This action cannot be undone.
+    </p>
+
+    <div class="flex gap-2">
+      <button
+        (click)="closeDeleteConfirm()"
+        class="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+      >
+        Cancel
+      </button>
+      <button
+        (click)="onDelete()"
+        class="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+      >
+        Delete
+      </button>
+    </div>
+  </div>
+</div>
+}

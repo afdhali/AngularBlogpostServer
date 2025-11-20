@@ -25,6 +25,11 @@ export const DASHBOARD_ROUTES: Routes = [
           import('./pages/profile/profile.component').then((m) => m.ProfileComponent),
         title: 'Profile - BlogApp',
       },
+      {
+        path: 'media',
+        loadComponent: () => import('./pages/media/media.component').then((m) => m.MediaComponent),
+        title: 'Media Gallery - BlogApp',
+      },
       // Future dashboard sub-routes
       // {
       //   path: 'posts',

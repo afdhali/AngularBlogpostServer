@@ -29,8 +29,13 @@
             <a href="#" class="px-4 py-2 text-gray-600 hover:text-blue-600 transition-colors">
               My Posts
             </a>
-            <a href="#" class="px-4 py-2 text-gray-600 hover:text-blue-600 transition-colors">
-              Analytics
+            <a
+              routerLink="/dashboard/media"
+              routerLinkActive="text-blue-600 font-semibold border-b-2 border-blue-600"
+              [routerLinkActiveOptions]="{ exact: true }"
+              class="px-4 py-2 text-gray-600 hover:text-blue-600 transition-colors"
+            >
+              Media
             </a>
           </div>
         </div>

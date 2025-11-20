@@ -1,0 +1,274 @@
+<!-- ✅ blog-manager.html - FIXED @defer dengan 'when' signals
+     
+     Fixed:
+     1. ❌ @defer (on timer) → ✅ @defer (when statsReady())
+     2. ✅ @loading NOW WILL TRIGGER properly!
+     3. ✅ Skeleton visible 1-2 detik
+     4. ✅ Component lifecycle correct
+-->
+
+<div class="min-h-screen bg-gray-50">
+  <!-- Header section -->
+  <header class="bg-linear-to-r from-blue-600 to-purple-600 text-white py-8 shadow-lg">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <h1 class="text-4xl font-bold mb-2">📚 Blog Manager</h1>
+      <p class="text-blue-100">Manage, filter, and read blog posts with advanced features</p>
+
+      <!-- Search bar -->
+      <div class="mt-4 max-w-md">
+        <input
+          type="text"
+          placeholder="🔍 Search posts..."
+          (input)="onSearch($event)"
+          class="w-full px-4 py-2 rounded-lg text-gray-800 focus:outline-none focus:ring-2 focus:ring-yellow-400"
+          aria-label="Search posts"
+        />
+      </div>
+
+      <!-- Debug mode toggle -->
+      <div class="mt-4 flex items-center gap-2">
+        <input
+          type="checkbox"
+          id="debugMode"
+          (change)="toggleDebugMode()"
+          class="rounded"
+          [checked]="debugMode()"
+        />
+        <label for="debugMode" class="text-sm cursor-pointer">
+          🐛 Enable Debug Mode (Show Lifecycle Events)
+        </label>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- ✅ Stats Cards dengan 'when' condition -->
+    <!-- SEBELUM: @defer (on timer(1500ms)) - placeholder terus, loading tidak trigger -->
+    <!-- SESUDAH: @defer (when statsReady()) - loading AKAN trigger 1.5 detik! ✅ -->
+    @defer (when statsReady()) {
+    <section class="mb-8">
+      <h2 class="text-2xl font-bold text-gray-800 mb-4">📊 Dashboard Stats</h2>
+      <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+        <!-- Total Posts -->
+        <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-lg shadow">
+          <div class="text-3xl font-bold text-blue-600">{{ stats().totalPosts }}</div>
+          <div class="text-sm text-gray-600">Total Posts</div>
+        </div>
+
+        <!-- Published -->
+        <div class="bg-green-50 border-l-4 border-green-500 p-4 rounded-lg shadow">
+          <div class="text-3xl font-bold text-green-600">{{ stats().publishedCount }}</div>
+          <div class="text-sm text-gray-600">🟢 Published</div>
+        </div>
+
+        <!-- Drafts -->
+        <div class="bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded-lg shadow">
+          <div class="text-3xl font-bold text-yellow-600">{{ stats().draftCount }}</div>
+          <div class="text-sm text-gray-600">🟡 Drafts</div>
+        </div>
+
+        <!-- Total Views -->
+        <div class="bg-purple-50 border-l-4 border-purple-500 p-4 rounded-lg shadow">
+          <div class="text-3xl font-bold text-purple-600">{{ stats().totalViews | number }}</div>
+          <div class="text-sm text-gray-600">👁️ Total Views</div>
+        </div>
+
+        <!-- Average Reading Time -->
+        <div class="bg-orange-50 border-l-4 border-orange-500 p-4 rounded-lg shadow">
+          <div class="text-3xl font-bold text-orange-600">{{ stats().avgReadingTime }}</div>
+          <div class="text-sm text-gray-600">⏱️ Avg Reading (min)</div>
+        </div>
+      </div>
+    </section>
+    } @placeholder {
+    <!-- Placeholder SEBELUM condition true (sebelum 1.5s) -->
+    <div class="mb-8 text-gray-400 text-center py-4">⏳ Preparing stats...</div>
+    } @loading (minimum 1500ms) {
+    <!-- ✅ NOW WILL TRIGGER! Loading skeleton VISIBLE 1.5 detik! -->
+    <div class="mb-8 grid grid-cols-1 md:grid-cols-5 gap-4">
+      @for (i of [1, 2, 3, 4, 5]; track i) {
+      <div class="h-20 bg-gray-200 rounded-lg animate-pulse border-l-4 border-gray-300"></div>
+      }
+    </div>
+    }
+
+    <!-- Filter section -->
+    <section class="mb-8 bg-white p-6 rounded-lg shadow">
+      <h2 class="text-xl font-bold text-gray-800 mb-4">🔍 Filter Posts</h2>
+
+      <div class="flex flex-wrap gap-2">
+        @for (status of statuses; track status) {
+        <button
+          (click)="filterByStatus(status)"
+          [class]="
+            getSelectedStatus() === status
+              ? 'bg-blue-600 text-white'
+              : 'bg-gray-200 text-gray-800 hover:bg-gray-300'
+          "
+          class="px-4 py-2 rounded-lg font-medium transition-colors duration-200"
+          [attr.aria-pressed]="getSelectedStatus() === status"
+        >
+          {{ status | uppercase }}
+        </button>
+        }
+      </div>
+    </section>
+
+    <!-- Posts list dengan child components -->
+    <section>
+      <h2 class="text-2xl font-bold text-gray-800 mb-4">📝 Posts ({{ filteredPosts().length }})</h2>
+
+      @if (filteredPosts().length > 0) {
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- ✅ Posts dengan 'on viewport' - real lazy loading -->
+        <!-- Ini sudah benar karena BlogPostCard adalah standalone component -->
+        @for (post of filteredPosts(); track post.id) { @defer (on viewport; prefetch on idle) {
+        <!-- Actual component - loads saat scroll to viewport -->
+        <app-blog-post-card
+          [post]="post"
+          (postViewed)="onPostViewed($event)"
+          (postStatusChanged)="onPostStatusChanged($event)"
+          (postDeleted)="onPostDeleted($event)"
+        />
+        } @placeholder {
+        <!-- Placeholder sebelum loading trigger -->
+        <div
+          class="p-6 rounded-lg shadow h-64 bg-gray-50 border border-gray-200 flex items-center justify-center"
+        >
+          <div class="text-gray-400 text-center">
+            <p class="text-2xl mb-2">📄</p>
+            <p class="text-sm">{{ post.title }}</p>
+            <p class="text-xs text-gray-500 mt-2">Scroll to load...</p>
+          </div>
+        </div>
+        } @loading (minimum 800ms) {
+        <!-- ✅ Loading skeleton visible saat scroll! -->
+        <div class="bg-white p-6 rounded-lg shadow h-64 animate-pulse border border-gray-100">
+          <div class="h-6 bg-gray-200 rounded mb-4 w-3/4"></div>
+          <div class="space-y-2">
+            <div class="h-4 bg-gray-200 rounded w-full"></div>
+            <div class="h-4 bg-gray-200 rounded w-5/6"></div>
+            <div class="h-4 bg-gray-200 rounded w-4/6"></div>
+          </div>
+          <div class="mt-4 flex gap-2">
+            <div class="h-10 bg-gray-200 rounded w-24"></div>
+            <div class="h-10 bg-gray-200 rounded w-24"></div>
+          </div>
+        </div>
+        } }
+      </div>
+      } @else {
+      <!-- Empty state -->
+      <div class="text-center py-12 bg-white rounded-lg shadow">
+        <p class="text-3xl mb-2">😕 No posts</p>
+        <p class="text-xl text-gray-600">No posts found</p>
+        @if (getSearchQuery()) {
+        <p class="text-gray-500 mt-2">Try a different search term</p>
+        }
+      </div>
+      }
+    </section>
+
+    <!-- Selected post detail section -->
+    @if (selectedPost()) {
+    <section class="mt-8">
+      <div class="flex gap-4 mb-4 items-center bg-white p-4 rounded-lg shadow">
+        <h2 class="text-2xl font-bold text-gray-800">📖 Reading</h2>
+        <button
+          (click)="closePostDetail()"
+          class="ml-auto px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors font-medium"
+        >
+          ✕ Close
+        </button>
+      </div>
+
+      <!-- ✅ Detail dengan 'when' condition - sama seperti stats -->
+      @defer (when detailReady()) {
+      <!-- Load saat detailReady() true (1.2 detik) -->
+      <app-blog-post-detail [post]="selectedPost()!" />
+      } @placeholder {
+      <!-- Placeholder sebelum condition true -->
+      <p class="text-gray-400 text-center py-4">⏳ Loading detail...</p>
+      } @loading (minimum 1200ms) {
+      <!-- ✅ Loading skeleton VISIBLE 1.2 detik! -->
+      <div class="bg-white p-8 rounded-lg shadow space-y-4 border border-gray-100">
+        <div class="h-8 bg-gray-200 rounded w-2/3 animate-pulse"></div>
+        <div class="space-y-3">
+          <div class="h-4 bg-gray-200 rounded w-full animate-pulse"></div>
+          <div class="h-4 bg-gray-200 rounded w-5/6 animate-pulse"></div>
+          <div class="h-4 bg-gray-200 rounded w-4/6 animate-pulse"></div>
+          <div class="h-4 bg-gray-200 rounded w-full animate-pulse"></div>
+          <div class="h-4 bg-gray-200 rounded w-3/4 animate-pulse"></div>
+        </div>
+      </div>
+      }
+    </section>
+    }
+
+    <!-- Debug panel -->
+    @if (debugMode()) {
+    <!-- ✅ Debug dengan 'when' condition - 500ms delay -->
+    @defer (when debugReady()) {
+    <section class="mt-8 bg-gray-900 text-gray-100 p-6 rounded-lg shadow-lg border border-gray-700">
+      <h2 class="text-xl font-bold mb-4">🐛 Debug Panel - State Management</h2>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- Current state info -->
+        <div class="bg-gray-800 p-4 rounded border border-gray-700">
+          <h3 class="font-bold mb-2 text-green-400">✅ Current State</h3>
+          <div class="space-y-1 text-sm font-mono">
+            <p>
+              Posts rendered: <span class="text-yellow-400">{{ filteredPosts().length }}</span>
+            </p>
+            <p>
+              Search query: <span class="text-yellow-400">{{ getSearchQuery() || '(none)' }}</span>
+            </p>
+            <p>
+              Selected status:
+              <span class="text-yellow-400">{{ getSelectedStatus() }}</span>
+            </p>
+            <p>
+              Post detail open:
+              <span class="text-yellow-400">{{ selectedPost() ? 'Yes' : 'No' }}</span>
+            </p>
+            <p class="text-green-400 mt-3">✅ Centralized State (service owns)</p>
+            <p class="text-green-400">✅ Component subscribes only</p>
+            <p class="text-green-400">✅ No data duplication</p>
+          </div>
+        </div>
+
+        <!-- Lifecycle events log -->
+        <div class="bg-gray-800 p-4 rounded border border-gray-700">
+          <h3 class="font-bold mb-2 text-blue-400">🔄 Lifecycle Events</h3>
+          <div class="text-xs font-mono max-h-48 overflow-y-auto space-y-1">
+            @for (event of parentLifecycleEvents(); track $index) {
+            <div class="text-gray-300">{{ event }}</div>
+            } @empty {
+            <div class="text-gray-500">No events yet...</div>
+            }
+          </div>
+        </div>
+      </div>
+    </section>
+    } @placeholder {
+    <div class="mt-8 text-gray-400 text-center">Loading debug panel...</div>
+    } @loading (minimum 500ms) {
+    <!-- Loading untuk debug panel -->
+    <div class="mt-8 bg-gray-800 p-6 rounded-lg animate-pulse h-48"></div>
+    } }
+  </main>
+
+  <!-- Footer -->
+  <footer class="bg-gray-900 text-gray-400 text-center py-8 mt-12 border-t border-gray-700">
+    <p class="mb-2">
+      Angular 20: Lifecycle • Inheritance • Pipes • Deferred Loading • Centralized State
+    </p>
+    <p class="text-xs">
+      ✅ Fixed: No duplicate state! Service owns all state, component subscribes
+    </p>
+    <p class="text-xs mt-1">✅ Correct defer: 'when' signals untuk trigger loading properly!</p>
+    <p class="text-xs mt-1">
+      ✅ Visible Loading: Stats (1.5s), Cards (0.8s on scroll), Detail (1.2s)
+    </p>
+  </footer>
+</div>
