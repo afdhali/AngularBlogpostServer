@@ -25,7 +25,7 @@ import {
 } from '../models/auth.model';
 
 /**
- * Authentication Service - ULTIMATE FIX
+ * Authentication Service - ULTIMATE FIX + LOGOUT FIX
  *
  * Issues Fixed:
  * 1. ✅ Prevent double/multiple refresh token requests (Request Locking)
@@ -33,12 +33,14 @@ import {
  * 3. ✅ Better initialization flag management
  * 4. ✅ Clear logging untuk debugging
  * 5. ✅ Handle race conditions
+ * 6. ✅ LOGOUT: Now calls backend to invalidate refresh token (SECURITY FIX)
  *
  * Critical Changes:
  * - Added refreshTokenInProgress$ observable untuk prevent multiple refresh
  * - Added isInitializing flag untuk prevent double init
  * - Improved error handling dengan detailed logging
  * - Platform check di semua storage operations
+ * - **LOGOUT FIX**: Now sends refresh_token to backend for server-side invalidation
  */
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -134,7 +136,7 @@ export class AuthService {
         return null;
       }
       const decrypted = this.decrypt(encrypted);
-      console.log('🔑 [refreshToken getter] Token retrieved from sessionStorage');
+      console.log('🔓 [refreshToken getter] Token retrieved from sessionStorage');
       return decrypted;
     } catch (error) {
       console.error('❌ [refreshToken getter] Failed to get refresh token:', error);
@@ -217,89 +219,96 @@ export class AuthService {
    */
   initAuth(): Observable<void> {
     console.log('');
-    console.log('═══════════════════════════════════════════════');
+    console.log('══════════════════════════════════════════════');
     console.log('🔄 [initAuth] STARTING AUTH INITIALIZATION');
-    console.log('═══════════════════════════════════════════════');
+    console.log('══════════════════════════════════════════════');
 
     // ========================================
-    // STEP 1: Platform Check
+    // STEP 1: Platform Check (Browser Only)
     // ========================================
     if (!this.isBrowser()) {
-      console.log('🖥️ [initAuth] Server-side rendering detected');
-      console.log('   → Skipping initialization (no sessionStorage available)');
-      console.log('═══════════════════════════════════════════════');
+      console.log('⚠️  [initAuth] NOT in browser (SSR detected)');
+      console.log('   → Skipping auth initialization');
+      console.log('   → Auth will be initialized on client-side');
+      console.log('══════════════════════════════════════════════');
+      console.log('');
       return EMPTY;
     }
 
-    console.log('🌐 [initAuth] Browser environment detected');
+    console.log('✅ [initAuth] Browser environment detected');
 
     // ========================================
-    // STEP 2: Already Initialized Check
+    // STEP 2: Check Already Initialized
     // ========================================
     if (this.isInitialized) {
-      console.log('✅ [initAuth] Already initialized');
-      console.log('   → Skipping re-initialization');
-      console.log('   → User:', this.userSignal()?.username || 'Not logged in');
-      console.log('═══════════════════════════════════════════════');
-      return EMPTY;
+      console.log('ℹ️  [initAuth] Already initialized');
+      console.log('   → Current user:', this.userSignal()?.username || 'None');
+      console.log('══════════════════════════════════════════════');
+      console.log('');
+      return of(void 0);
     }
 
     // ========================================
-    // STEP 3: Initialization In Progress Check
+    // STEP 3: Check Initialization In Progress
     // ========================================
     if (this.isInitializing) {
       console.log('⏳ [initAuth] Initialization already in progress');
-      console.log('   → Skipping duplicate initialization attempt');
-      console.log('═══════════════════════════════════════════════');
+      console.log('   → Waiting for current initialization to complete...');
+      console.log('══════════════════════════════════════════════');
+      console.log('');
       return EMPTY;
     }
 
     // ========================================
-    // STEP 4: Refresh Token Check
-    // ========================================
-    if (!this.hasRefreshToken()) {
-      console.log('⚠️ [initAuth] No refresh token found in sessionStorage');
-      console.log('   → User needs to login');
-      console.log('═══════════════════════════════════════════════');
-      this.isInitialized = true; // Mark as initialized (checked, no token)
-      return EMPTY;
-    }
-
-    console.log('🔑 [initAuth] Refresh token found in sessionStorage');
-
-    // ========================================
-    // STEP 5: Start Initialization
+    // STEP 4: Set Initializing Flag
     // ========================================
     this.isInitializing = true;
     this.isLoadingSignal.set(true);
+    console.log('🔄 [initAuth] Starting fresh initialization...');
 
-    console.log('📡 [initAuth] Starting token refresh process...');
+    // ========================================
+    // STEP 5: Check Refresh Token
+    // ========================================
+    const refreshToken = this.refreshToken;
 
+    if (!refreshToken) {
+      console.log('⚠️  [initAuth] No refresh token found');
+      console.log('   → User needs to login');
+      console.log('══════════════════════════════════════════════');
+      console.log('');
+      this.isInitializing = false;
+      this.isLoadingSignal.set(false);
+      this.isInitialized = true; // Mark as initialized (no session)
+      return of(void 0);
+    }
+
+    console.log('🔑 [initAuth] Refresh token found');
+    console.log('🔄 [initAuth] Attempting to restore session...');
+
+    // ========================================
+    // STEP 6: Perform Token Refresh
+    // ========================================
     return this.performRefreshToken().pipe(
       switchMap(() => {
-        console.log('✅ [initAuth] Access token refreshed successfully');
-        console.log('👤 [initAuth] Fetching user profile...');
-        return this.fetchUserProfile().pipe(map(() => void 0));
+        console.log('🔄 [initAuth] Token refreshed, fetching user profile...');
+        return this.fetchUserProfile();
       }),
       tap(() => {
-        console.log('✅ [initAuth] User profile fetched successfully');
-        console.log('   → Username:', this.userSignal()?.username);
-        console.log('   → Email:', this.userSignal()?.email);
+        console.log('✅ [initAuth] Session restored successfully');
+        console.log('   → User:', this.userSignal()?.username);
         console.log('   → Role:', this.userSignal()?.role);
-        this.isLoadingSignal.set(false);
-        this.isInitialized = true;
-        this.isInitializing = false;
-        console.log('═══════════════════════════════════════════════');
-        console.log('✅ [initAuth] AUTH INITIALIZATION COMPLETE');
-        console.log('═══════════════════════════════════════════════');
+        console.log('══════════════════════════════════════════════');
         console.log('');
+        this.isInitialized = true;
       }),
+      map(() => void 0),
       catchError((error) => {
         console.error('');
-        console.error('═══════════════════════════════════════════════');
-        console.error('❌ [initAuth] AUTH INITIALIZATION FAILED');
-        console.error('═══════════════════════════════════════════════');
-        console.error('Error details:', error);
+        console.error('══════════════════════════════════════════════');
+        console.error('❌ [initAuth] Initialization failed');
+        console.error('══════════════════════════════════════════════');
+        console.error('   → Error status:', error.status);
+        console.error('   → Error message:', error.error?.data?.message);
 
         if (error.status === 401) {
           console.error('   → Refresh token expired or invalid');
@@ -310,7 +319,7 @@ export class AuthService {
         }
 
         console.error('   → Clearing auth state and requiring re-login');
-        console.error('═══════════════════════════════════════════════');
+        console.error('══════════════════════════════════════════════');
         console.error('');
 
         this.clearAuthState();
@@ -388,12 +397,81 @@ export class AuthService {
   }
 
   /**
-   * Logout user
+   * 🔥 LOGOUT FIX - Now calls backend to invalidate refresh token
+   *
+   * Critical Security Fix:
+   * - ✅ Sends refresh_token to backend for invalidation
+   * - ✅ Prevents token reuse after logout
+   * - ✅ Proper error handling
+   * - ✅ Clears auth state regardless of backend response
+   *
+   * Flow:
+   * 1. Get refresh token from storage
+   * 2. If token exists, call backend /auth/logout
+   * 3. Backend invalidates refresh token
+   * 4. Clear all auth state (client-side)
+   * 5. Navigate to login page
+   * 6. Handle errors gracefully (still logout even if backend fails)
    */
   logout(): void {
-    console.log('👋 [logout] Logging out user...');
-    this.clearAuthState();
-    this.router.navigate(['/auth/login']);
+    console.log('');
+    console.log('══════════════════════════════════════════════');
+    console.log('👋 [logout] Starting logout process...');
+    console.log('══════════════════════════════════════════════');
+
+    const refreshToken = this.refreshToken;
+
+    if (!refreshToken) {
+      console.log('⚠️  [logout] No refresh token found');
+      console.log('   → Clearing local state only...');
+      this.clearAuthState();
+      this.router.navigate(['/auth/login']);
+      return;
+    }
+
+    console.log('🔒 [logout] Refresh token found');
+    console.log('📡 [logout] Sending logout request to backend...');
+
+    // Call backend to invalidate refresh token
+    this.http
+      .post<{ code: number; status: string; data: { message: string } }>(
+        `${environment.apiUrl}/auth/logout`,
+        { refresh_token: refreshToken }
+      )
+      .pipe(
+        tap((response) => {
+          console.log('✅ [logout] Backend logout successful');
+          console.log('   → Message:', response.data.message);
+          console.log('   → Refresh token invalidated on server');
+        }),
+        catchError((error) => {
+          console.error('❌ [logout] Backend logout failed');
+          console.error('   → Status:', error.status);
+          console.error('   → Message:', error.error?.data?.message);
+
+          // ⚠️ IMPORTANT: Still logout user even if backend call fails
+          // Reasons:
+          // - Backend might be down (503)
+          // - Token might already be invalid (401)
+          // - Network issues (0)
+          // - User should still be able to logout locally
+          console.log('   → Proceeding with local logout anyway...');
+
+          // Return empty observable to continue the flow
+          return of(null);
+        }),
+        finalize(() => {
+          // ✅ ALWAYS clear auth state and redirect, regardless of backend response
+          console.log('🧹 [logout] Clearing local auth state...');
+          this.clearAuthState();
+          console.log('✅ [logout] Logout complete');
+          console.log('🔀 [logout] Redirecting to login page...');
+          console.log('══════════════════════════════════════════════');
+          console.log('');
+          this.router.navigate(['/auth/login']);
+        })
+      )
+      .subscribe();
   }
 
   /**
@@ -412,9 +490,9 @@ export class AuthService {
    */
   performRefreshToken(): Observable<void> {
     console.log('');
-    console.log('───────────────────────────────────────────────');
+    console.log('──────────────────────────────────────────────');
     console.log('🔄 [performRefreshToken] Attempting token refresh');
-    console.log('───────────────────────────────────────────────');
+    console.log('──────────────────────────────────────────────');
 
     // ========================================
     // STEP 1: Check if refresh in progress
@@ -432,11 +510,11 @@ export class AuthService {
 
     if (!refreshToken) {
       console.error('❌ [performRefreshToken] No refresh token available');
-      console.log('───────────────────────────────────────────────');
+      console.log('──────────────────────────────────────────────');
       return throwError(() => new Error('No refresh token available'));
     }
 
-    console.log('🔑 [performRefreshToken] Refresh token found');
+    console.log('🔓 [performRefreshToken] Refresh token found');
     console.log('📡 [performRefreshToken] Sending refresh request to backend...');
 
     // ========================================
@@ -469,7 +547,7 @@ export class AuthService {
             console.error('   → Backend service unavailable');
           }
 
-          console.log('───────────────────────────────────────────────');
+          console.log('──────────────────────────────────────────────');
           return throwError(() => error);
         }),
         switchMap(() => of(void 0)),
@@ -479,7 +557,7 @@ export class AuthService {
           // STEP 4: Cleanup lock after completion
           // ========================================
           console.log('🧹 [performRefreshToken] Cleaning up refresh lock');
-          console.log('───────────────────────────────────────────────');
+          console.log('──────────────────────────────────────────────');
           console.log('');
           this.refreshTokenInProgress$ = null;
         })

@@ -1,0 +1,378 @@
+<!-- media-picker.component.html -->
+<div class="min-h-[600px] bg-white rounded-xl shadow-xl flex flex-col overflow-hidden">
+  <!-- Header -->
+  <div class="bg-linear-to-r from-blue-600 to-indigo-600 text-white px-6 py-4">
+    <div class="flex justify-between items-center">
+      <div class="flex items-center gap-3">
+        <h2 class="text-2xl font-bold">🎨 Select Media</h2>
+        @if (selectionCount() > 0) {
+        <span class="bg-white/20 px-3 py-1 rounded-full text-sm font-medium backdrop-blur-sm">
+          {{ selectionCount() }} selected @if (config().maxSelection && config().maxSelection! > 1)
+          {
+          <span class="opacity-80">/ {{ config().maxSelection }}</span>
+          }
+        </span>
+        }
+      </div>
+
+      <div class="flex gap-2">
+        <!-- Upload Button -->
+        @if (canUpload()) {
+        <button
+          (click)="openUploadModal()"
+          class="px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors flex items-center gap-2 backdrop-blur-sm"
+          type="button"
+        >
+          <span class="text-lg">📤</span>
+          Upload New
+        </button>
+        }
+
+        <!-- Clear Selection -->
+        @if (selectionCount() > 0) {
+        <button
+          (click)="clearSelection()"
+          class="px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors backdrop-blur-sm"
+          type="button"
+        >
+          Clear
+        </button>
+        }
+      </div>
+    </div>
+  </div>
+
+  <!-- Search Bar -->
+  <div class="px-6 py-4 border-b border-gray-200">
+    <div class="relative">
+      <input
+        type="text"
+        class="w-full px-4 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+        placeholder="🔍 Search by filename, alt text, or description..."
+        [value]="searchQuery()"
+        (input)="onSearchChange($any($event.target).value)"
+      />
+      @if (searchQuery()) {
+      <button
+        (click)="clearSearch()"
+        class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+        type="button"
+      >
+        ✕
+      </button>
+      }
+    </div>
+  </div>
+
+  <!-- Main Content Area with @defer -->
+  <div class="flex-1 overflow-y-auto">
+    @defer (when contentReady()) {
+    <!-- Error State -->
+    @if (error()) {
+    <div class="p-6">
+      <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+        <p class="text-red-700 mb-2">{{ error() }}</p>
+        <button
+          (click)="loadMedia()"
+          class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+          type="button"
+        >
+          Retry
+        </button>
+      </div>
+    </div>
+    }
+
+    <!-- Empty State -->
+    @if (!error() && filteredMedia().length === 0) {
+    <div class="flex flex-col items-center justify-center py-12 text-gray-500">
+      <span class="text-6xl mb-4">📭</span>
+      <p class="text-lg font-medium mb-2">No media found</p>
+      <p class="text-sm text-gray-400 mb-4">Try adjusting your filters or search query</p>
+      @if (canUpload()) {
+      <button
+        (click)="openUploadModal()"
+        class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+        type="button"
+      >
+        Upload First Media
+      </button>
+      }
+    </div>
+    }
+
+    <!-- Media Grid -->
+    @if (!error() && filteredMedia().length > 0) {
+    <div class="p-6">
+      <div
+        [class]="
+          config().previewMode === 'grid'
+            ? 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4'
+            : 'flex flex-col gap-3'
+        "
+      >
+        @for (media of filteredMedia(); track media.id) {
+        <!-- ✅ @defer per media item untuk lazy loading -->
+        @defer (on viewport; prefetch on idle) {
+        <div
+          (click)="toggleSelection(media)"
+          [class]="
+            'relative bg-white border-2 rounded-lg overflow-hidden cursor-pointer transition-all group ' +
+            (isSelected(media)
+              ? 'border-blue-500 shadow-lg scale-[1.02]'
+              : 'border-gray-200 hover:border-blue-300 hover:shadow-md') +
+            (maxReached() && !isSelected(media) ? ' opacity-50 cursor-not-allowed' : '')
+          "
+        >
+          <!-- Selection Indicator -->
+          <div class="absolute top-2 right-2 z-10">
+            @if (isSelected(media)) {
+            <div
+              class="w-6 h-6 bg-blue-600 text-white rounded flex items-center justify-center font-bold"
+            >
+              ✓
+            </div>
+            } @else {
+            <div class="w-6 h-6 bg-white border-2 border-gray-300 rounded"></div>
+            }
+          </div>
+
+          <!-- Media Preview -->
+          <div class="aspect-square bg-gray-100 flex items-center justify-center overflow-hidden">
+            @if (media.media_type === 'image') {
+            <img
+              [ngSrc]="media.url"
+              [alt]="media.alt_text || media.original_name"
+              [width]="300"
+              [height]="300"
+              [priority]="false"
+              class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+              loading="lazy"
+            />
+            } @else {
+            <div class="flex flex-col items-center text-gray-400">
+              <span class="text-4xl mb-2">{{ getMediaIcon(media.media_type) }}</span>
+              <span class="text-xs uppercase font-medium">{{ media.media_type }}</span>
+            </div>
+            }
+          </div>
+
+          <!-- Media Info -->
+          <div class="p-3 bg-white">
+            <p class="text-sm font-medium text-gray-800 truncate" [title]="media.original_name">
+              {{ media.original_name }}
+            </p>
+            <div class="flex items-center gap-2 mt-1 text-xs text-gray-500">
+              <span>{{ formatFileSize(media.size) }}</span>
+              <!-- @if (media.width && media.height) {
+              <span class="text-gray-400">•</span>
+              <span>{{ media.width }}×{{ media.height }}</span>
+              } -->
+            </div>
+          </div>
+        </div>
+        } @placeholder {
+        <!-- Placeholder before viewport -->
+        <div
+          class="aspect-square bg-gray-100 rounded-lg border-2 border-gray-200 flex items-center justify-center"
+        >
+          <span class="text-2xl text-gray-300">📄</span>
+        </div>
+        } @loading (minimum 300ms) {
+        <!-- Loading skeleton -->
+        <div class="animate-pulse">
+          <div class="aspect-square bg-gray-200 rounded-lg mb-3"></div>
+          <div class="h-4 bg-gray-200 rounded w-3/4"></div>
+        </div>
+        } }
+      </div>
+
+      <!-- Pagination -->
+      @if (totalPages() > 1) {
+      <div class="flex justify-center items-center gap-2 mt-6 pt-6 border-t border-gray-200">
+        <button
+          (click)="previousPage()"
+          [disabled]="currentPage() === 1"
+          class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          type="button"
+        >
+          ← Previous
+        </button>
+
+        <span class="text-sm text-gray-600 px-4">
+          Page {{ currentPage() }} of {{ totalPages() }}
+        </span>
+
+        <button
+          (click)="nextPage()"
+          [disabled]="currentPage() === totalPages()"
+          class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          type="button"
+        >
+          Next →
+        </button>
+      </div>
+      }
+    </div>
+    } } @placeholder {
+    <!-- Initial placeholder -->
+    <div class="flex items-center justify-center py-12">
+      <p class="text-gray-400">⏳ Preparing media library...</p>
+    </div>
+    } @loading (minimum 800ms) {
+    <!-- ✅ Loading skeleton dengan animation -->
+    <div class="p-6">
+      <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+        @for (i of [1,2,3,4,5,6,7,8]; track i) {
+        <div class="animate-pulse">
+          <div class="aspect-square bg-gray-200 rounded-lg mb-3"></div>
+          <div class="h-4 bg-gray-200 rounded w-3/4"></div>
+        </div>
+        }
+      </div>
+    </div>
+    }
+  </div>
+
+  <!-- Footer Actions -->
+  <div class="flex justify-end gap-3 px-6 py-4 border-t border-gray-200 bg-gray-50">
+    <button
+      (click)="cancelSelection()"
+      class="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors"
+      type="button"
+    >
+      Cancel
+    </button>
+    <button
+      (click)="confirmSelection()"
+      [disabled]="selectionCount() === 0"
+      class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+      type="button"
+    >
+      Confirm Selection @if (selectionCount() > 0) {
+      <span class="bg-white/20 px-2 py-0.5 rounded-full text-xs">({{ selectionCount() }})</span>
+      }
+    </button>
+  </div>
+</div>
+
+<!-- Upload Modal -->
+@if (showUploadModal()) {
+<div
+  class="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
+  (click)="closeUploadModal()"
+>
+  <div class="bg-white rounded-xl max-w-md w-full shadow-2xl" (click)="$event.stopPropagation()">
+    <div class="flex justify-between items-center px-6 py-4 border-b border-gray-200">
+      <h3 class="text-xl font-bold text-gray-800">📤 Upload Media</h3>
+      <button
+        (click)="closeUploadModal()"
+        class="text-gray-400 hover:text-gray-600 text-2xl leading-none"
+        type="button"
+      >
+        ✕
+      </button>
+    </div>
+
+    <div class="p-6 space-y-4">
+      <!-- File Input -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Select File *</label>
+        <label class="block cursor-pointer">
+          <input
+            type="file"
+            class="hidden"
+            (change)="onFileSelected($event)"
+            [accept]="
+              config().mediaType === 'image'
+                ? 'image/*'
+                : config().mediaType === 'video'
+                ? 'video/*'
+                : config().mediaType === 'audio'
+                ? 'audio/*'
+                : config().mediaType === 'document'
+                ? '.pdf,.doc,.docx,.txt'
+                : '*'
+            "
+            [disabled]="isUploading()"
+          />
+          <span
+            class="block px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg text-center hover:border-blue-500 hover:bg-blue-50 transition-colors"
+          >
+            {{ selectedFile() ? selectedFile()!.name : '📁 Choose file or drag here' }}
+          </span>
+        </label>
+      </div>
+
+      <!-- Image Preview -->
+      @if (previewUrl()) {
+      <div class="border rounded-lg overflow-hidden">
+        <img [src]="previewUrl()!" alt="Preview" class="w-full h-48 object-contain bg-gray-50" />
+      </div>
+      }
+
+      <!-- Alt Text -->
+      <div>
+        <label for="alt-text" class="block text-sm font-medium text-gray-700 mb-2">Alt Text</label>
+        <input
+          id="alt-text"
+          type="text"
+          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          placeholder="Alternative text for accessibility"
+          [value]="altText()"
+          (input)="altText.set($any($event.target).value)"
+          [disabled]="isUploading()"
+        />
+      </div>
+
+      <!-- Description -->
+      <div>
+        <label for="description" class="block text-sm font-medium text-gray-700 mb-2"
+          >Description</label
+        >
+        <textarea
+          id="description"
+          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          rows="3"
+          placeholder="Optional description"
+          [value]="description()"
+          (input)="description.set($any($event.target).value)"
+          [disabled]="isUploading()"
+        ></textarea>
+      </div>
+
+      <!-- Upload Progress -->
+      @if (isUploading()) {
+      <div class="space-y-2">
+        <div class="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+          <div
+            class="bg-blue-600 h-2 rounded-full transition-all duration-300"
+            [style.width.%]="uploadProgress()"
+          ></div>
+        </div>
+        <p class="text-sm text-center text-gray-600">Uploading... {{ uploadProgress() }}%</p>
+      </div>
+      }
+    </div>
+
+    <div class="flex gap-3 px-6 py-4 border-t border-gray-200 bg-gray-50">
+      <button
+        (click)="closeUploadModal()"
+        [disabled]="isUploading()"
+        class="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 disabled:opacity-50 transition-colors"
+        type="button"
+      >
+        Cancel
+      </button>
+      <button
+        (click)="onUpload()"
+        [disabled]="!selectedFile() || isUploading()"
+        class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
+        type="button"
+      >
+        {{ isUploading() ? 'Uploading...' : 'Upload' }}
+      </button>
+    </div>
+  </div>
+</div>
+}
