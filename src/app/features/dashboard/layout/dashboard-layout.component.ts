@@ -34,4 +34,9 @@ export class DashboardLayoutComponent {
     this.closeDropdown();
     this.router.navigate(['/dashboard/profile']);
   }
+
+  navigateToCategories(): void {
+    this.closeDropdown();
+    this.router.navigate(['/dashboard/categories']);
+  }
 }

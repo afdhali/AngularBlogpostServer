@@ -32,11 +32,20 @@
             <a
               routerLink="/dashboard/media"
               routerLinkActive="text-blue-600 font-semibold border-b-2 border-blue-600"
-              [routerLinkActiveOptions]="{ exact: true }"
               class="px-4 py-2 text-gray-600 hover:text-blue-600 transition-colors"
             >
               Media
             </a>
+            <!-- Admin Only Navigation -->
+            @if (authService.isAdmin()){
+            <a
+              routerLink="/dashboard/categories"
+              routerLinkActive="text-blue-600 font-semibold border-b-2 border-blue-600"
+              class="px-4 py-2 text-gray-600 hover:text-blue-600 transition-colors"
+            >
+              Categories
+            </a>
+            }
           </div>
         </div>
 
@@ -88,6 +97,26 @@
                 </svg>
                 Profile Settings
               </button>
+
+              <!-- Admin Menu Items -->
+              @if (authService.isAdmin()) {
+              <div class="border-t border-gray-200 my-1"></div>
+              <button
+                (click)="navigateToCategories()"
+                class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"
+                  />
+                </svg>
+                Manage Categories
+              </button>
+              }
+
               <div class="border-t border-gray-200 my-1"></div>
               <button
                 (click)="logout()"

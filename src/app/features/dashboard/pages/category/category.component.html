@@ -1,0 +1,505 @@
+<!-- category.component.html -->
+<div class="min-h-screen bg-gray-50 p-6">
+  <!-- Header -->
+  <div class="max-w-7xl mx-auto">
+    <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <h1 class="text-3xl font-bold text-gray-900">📁 Category Management</h1>
+          <p class="text-gray-600 mt-1">Manage blog categories and organize content</p>
+        </div>
+        <button
+          type="button"
+          (click)="openCreateModal()"
+          class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow-md transition-colors duration-200"
+        >
+          <span class="mr-2">➕</span>
+          Create Category
+        </button>
+      </div>
+    </div>
+
+    <!-- Stats Cards with @defer -->
+    @defer (when statsReady()) {
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      <!-- Total Categories -->
+      <div class="bg-white rounded-lg shadow-md p-6 border-l-4 border-blue-500">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-gray-600 text-sm font-medium">Total Categories</p>
+            <p class="text-3xl font-bold text-blue-600 mt-1">{{ stats().total }}</p>
+          </div>
+          <div class="text-4xl">📁</div>
+        </div>
+      </div>
+
+      <!-- Total Posts -->
+      <div class="bg-white rounded-lg shadow-md p-6 border-l-4 border-green-500">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-gray-600 text-sm font-medium">Total Posts</p>
+            <p class="text-3xl font-bold text-green-600 mt-1">{{ stats().totalPosts }}</p>
+          </div>
+          <div class="text-4xl">📝</div>
+        </div>
+      </div>
+
+      <!-- Average Posts -->
+      <div class="bg-white rounded-lg shadow-md p-6 border-l-4 border-purple-500">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-gray-600 text-sm font-medium">Avg Posts/Category</p>
+            <p class="text-3xl font-bold text-purple-600 mt-1">{{ stats().avgPosts }}</p>
+          </div>
+          <div class="text-4xl">📊</div>
+        </div>
+      </div>
+    </div>
+    } @placeholder {
+    <div class="text-gray-400 text-center py-4">⏳ Loading stats...</div>
+    } @loading (minimum 1000ms) {
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      @for (i of [1, 2, 3]; track i) {
+      <div
+        class="bg-white rounded-lg shadow-md p-6 h-24 animate-pulse border-l-4 border-gray-300"
+      ></div>
+      }
+    </div>
+    }
+
+    <!-- Search Bar -->
+    <div class="bg-white rounded-lg shadow-md p-4 mb-6">
+      <div class="flex items-center gap-2">
+        <div class="relative flex-1">
+          <input
+            type="text"
+            [value]="searchQuery()"
+            (input)="onSearchChange($event)"
+            placeholder="🔍 Search categories..."
+            class="w-full px-4 py-2 pl-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          <span class="absolute left-3 top-2.5 text-gray-400">🔍</span>
+        </div>
+        @if (searchQuery()) {
+        <button
+          type="button"
+          (click)="clearSearch()"
+          class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg transition-colors duration-200"
+        >
+          Clear
+        </button>
+        }
+      </div>
+      @if (searchQuery()) {
+      <p class="text-sm text-gray-600 mt-2">
+        Found {{ filteredCategories().length }} categories matching "{{ searchQuery() }}"
+      </p>
+      }
+    </div>
+
+    <!-- Error Message -->
+    @if (error()) {
+    <div class="bg-red-50 border border-red-300 text-red-800 px-4 py-3 rounded-lg mb-6">
+      <div class="flex items-center">
+        <span class="text-xl mr-2">⚠️</span>
+        <span>{{ error() }}</span>
+      </div>
+    </div>
+    }
+
+    <!-- Loading State -->
+    @if (isLoading()) {
+    <div class="bg-white rounded-lg shadow-md p-12 text-center">
+      <div
+        class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"
+      ></div>
+      <p class="text-gray-600 mt-4">Loading categories...</p>
+    </div>
+    }
+
+    <!-- Categories Table -->
+    @if (!isLoading()) {
+    <div class="bg-white rounded-lg shadow-md overflow-hidden">
+      @if (filteredCategories().length > 0) {
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gray-50">
+            <tr>
+              <th
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >
+                Category
+              </th>
+              <th
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >
+                Slug
+              </th>
+              <th
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >
+                Posts
+              </th>
+              <th
+                class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >
+                Actions
+              </th>
+            </tr>
+          </thead>
+          <tbody class="bg-white divide-y divide-gray-200">
+            @for (category of filteredCategories(); track category.id) {
+            <tr class="hover:bg-gray-50 transition-colors duration-150">
+              <td class="px-6 py-4">
+                <div>
+                  <div class="text-sm font-medium text-gray-900">{{ category.name }}</div>
+                  @if (category.description) {
+                  <div class="text-sm text-gray-500">{{ category.description }}</div>
+                  }
+                </div>
+              </td>
+              <td class="px-6 py-4">
+                <span class="text-sm text-gray-600 font-mono">{{ category.slug }}</span>
+              </td>
+              <td class="px-6 py-4">
+                <span
+                  class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
+                >
+                  {{ category.post_count }} posts
+                </span>
+              </td>
+              <td class="px-6 py-4 text-right text-sm font-medium">
+                <div class="flex justify-end gap-2">
+                  <button
+                    type="button"
+                    (click)="openEditModal(category)"
+                    class="inline-flex items-center px-3 py-1 bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg transition-colors duration-200"
+                    title="Edit category"
+                  >
+                    ✏️
+                  </button>
+                  <button
+                    type="button"
+                    (click)="openDeleteConfirm(category)"
+                    class="inline-flex items-center px-3 py-1 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors duration-200"
+                    title="Delete category"
+                  >
+                    🗑️
+                  </button>
+                </div>
+              </td>
+            </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination -->
+      @if (totalPages() > 1) {
+      <div class="bg-gray-50 px-6 py-4 flex items-center justify-between border-t border-gray-200">
+        <div class="text-sm text-gray-700">
+          Showing page <span class="font-medium">{{ currentPage() }}</span> of
+          <span class="font-medium">{{ totalPages() }}</span>
+          ({{ totalData() }} total categories)
+        </div>
+        <div class="flex gap-2">
+          <button
+            type="button"
+            (click)="previousPage()"
+            [disabled]="currentPage() === 1"
+            [class]="
+              currentPage() === 1
+                ? 'px-4 py-2 bg-gray-200 text-gray-400 rounded-lg cursor-not-allowed'
+                : 'px-4 py-2 bg-white hover:bg-gray-100 text-gray-700 border border-gray-300 rounded-lg transition-colors duration-200'
+            "
+          >
+            ← Previous
+          </button>
+
+          @for (pageNum of getPageNumbers(); track pageNum) { @if (pageNum === -1) {
+          <span class="px-3 py-2 text-gray-500">...</span>
+          } @else {
+          <button
+            type="button"
+            (click)="onPageChange(pageNum)"
+            [class]="
+              currentPage() === pageNum
+                ? 'px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold'
+                : 'px-4 py-2 bg-white hover:bg-gray-100 text-gray-700 border border-gray-300 rounded-lg transition-colors duration-200'
+            "
+          >
+            {{ pageNum }}
+          </button>
+          } }
+
+          <button
+            type="button"
+            (click)="nextPage()"
+            [disabled]="currentPage() === totalPages()"
+            [class]="
+              currentPage() === totalPages()
+                ? 'px-4 py-2 bg-gray-200 text-gray-400 rounded-lg cursor-not-allowed'
+                : 'px-4 py-2 bg-white hover:bg-gray-100 text-gray-700 border border-gray-300 rounded-lg transition-colors duration-200'
+            "
+          >
+            Next →
+          </button>
+        </div>
+      </div>
+      } } @else {
+      <!-- Empty State -->
+      <div class="text-center py-12">
+        <div class="text-6xl mb-4">📁</div>
+        <h3 class="text-xl font-semibold text-gray-900 mb-2">No categories found</h3>
+        @if (searchQuery()) {
+        <p class="text-gray-600">No categories match your search "{{ searchQuery() }}"</p>
+        <button
+          type="button"
+          (click)="clearSearch()"
+          class="mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors duration-200"
+        >
+          Clear search
+        </button>
+        } @else {
+        <p class="text-gray-600">Create your first category to get started</p>
+        <button
+          type="button"
+          (click)="openCreateModal()"
+          class="mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors duration-200"
+        >
+          ➕ Create Category
+        </button>
+        }
+      </div>
+      }
+    </div>
+    }
+  </div>
+</div>
+
+<!-- Create Modal -->
+@if (showCreateModal()) {
+<div class="fixed inset-0 z-50 overflow-y-auto" (click)="closeCreateModal()">
+  <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:p-0">
+    <!-- Backdrop -->
+    <div
+      class="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75"
+      aria-hidden="true"
+    ></div>
+
+    <!-- Modal Content -->
+    <div
+      (click)="$event.stopPropagation()"
+      class="relative inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full z-10"
+    >
+      <div class="bg-white px-6 pt-5 pb-4">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-2xl font-bold text-gray-900">➕ Create New Category</h3>
+          <button
+            type="button"
+            (click)="closeCreateModal()"
+            class="text-gray-400 hover:text-gray-600 text-2xl leading-none"
+          >
+            ×
+          </button>
+        </div>
+
+        <div class="space-y-4">
+          <!-- Name Input -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">
+              Category Name <span class="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              [value]="categoryName()"
+              (input)="categoryName.set($any($event.target).value)"
+              placeholder="e.g., Technology, Lifestyle, Travel"
+              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          <!-- Description Input -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">
+              Description (Optional)
+            </label>
+            <textarea
+              [value]="categoryDescription()"
+              (input)="categoryDescription.set($any($event.target).value)"
+              placeholder="Brief description of this category..."
+              rows="3"
+              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            ></textarea>
+          </div>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="bg-gray-50 px-6 py-4 flex justify-end gap-3">
+        <button
+          type="button"
+          (click)="closeCreateModal()"
+          class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg transition-colors duration-200"
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          (click)="onCreate()"
+          class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors duration-200"
+        >
+          Create Category
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+}
+
+<!-- Edit Modal -->
+@if (showEditModal() && selectedCategory()) {
+<div class="fixed inset-0 z-50 overflow-y-auto" (click)="closeEditModal()">
+  <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:p-0">
+    <!-- Backdrop -->
+    <div
+      class="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75"
+      aria-hidden="true"
+    ></div>
+
+    <!-- Modal Content -->
+    <div
+      (click)="$event.stopPropagation()"
+      class="relative inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full z-10"
+    >
+      <div class="bg-white px-6 pt-5 pb-4">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-2xl font-bold text-gray-900">✏️ Edit Category</h3>
+          <button
+            type="button"
+            (click)="closeEditModal()"
+            class="text-gray-400 hover:text-gray-600 text-2xl leading-none"
+          >
+            ×
+          </button>
+        </div>
+
+        <div class="space-y-4">
+          <!-- Name Input -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">
+              Category Name <span class="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              [value]="categoryName()"
+              (input)="categoryName.set($any($event.target).value)"
+              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          <!-- Description Input -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">
+              Description (Optional)
+            </label>
+            <textarea
+              [value]="categoryDescription()"
+              (input)="categoryDescription.set($any($event.target).value)"
+              rows="3"
+              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            ></textarea>
+          </div>
+
+          <!-- Info -->
+          <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
+            <p class="text-sm text-blue-800">
+              <span class="font-semibold">Slug:</span> {{ selectedCategory()!.slug }}
+            </p>
+            <p class="text-sm text-blue-800 mt-1">
+              <span class="font-semibold">Posts:</span> {{ selectedCategory()!.post_count }}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="bg-gray-50 px-6 py-4 flex justify-end gap-3">
+        <button
+          type="button"
+          (click)="closeEditModal()"
+          class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg transition-colors duration-200"
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          (click)="onUpdate()"
+          class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors duration-200"
+        >
+          Update Category
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+}
+
+<!-- Delete Confirmation Modal -->
+@if (showDeleteConfirm() && selectedCategory()) {
+<div class="fixed inset-0 z-50 overflow-y-auto" (click)="closeDeleteConfirm()">
+  <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:p-0">
+    <!-- Backdrop -->
+    <div
+      class="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75"
+      aria-hidden="true"
+    ></div>
+
+    <!-- Modal Content -->
+    <div
+      (click)="$event.stopPropagation()"
+      class="relative inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full z-10"
+    >
+      <div class="bg-white px-6 pt-5 pb-4">
+        <div class="flex items-start">
+          <div class="shrink-0 text-4xl">⚠️</div>
+          <div class="ml-4">
+            <h3 class="text-xl font-bold text-gray-900 mb-2">Delete Category</h3>
+            <p class="text-gray-600 mb-4">
+              Are you sure you want to delete the category
+              <span class="font-semibold">"{{ selectedCategory()!.name }}"</span>?
+            </p>
+            @if (selectedCategory()!.post_count > 0) {
+            <div class="bg-yellow-50 border border-yellow-300 rounded-lg p-3">
+              <p class="text-sm text-yellow-800">
+                ⚠️ This category has {{ selectedCategory()!.post_count }} post(s). Deleting it may
+                affect those posts.
+              </p>
+            </div>
+            }
+            <p class="text-sm text-gray-500 mt-3">This action cannot be undone.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="bg-gray-50 px-6 py-4 flex justify-end gap-3">
+        <button
+          type="button"
+          (click)="closeDeleteConfirm()"
+          class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg transition-colors duration-200"
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          (click)="onDelete()"
+          class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors duration-200"
+        >
+          Delete Category
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+}

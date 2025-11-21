@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { authGuard } from '../../guard/auth.guard';
+import { adminGuard, authGuard } from '../../guard/auth.guard';
 import { DashboardLayoutComponent } from './layout/dashboard-layout.component';
 
 /**
@@ -29,6 +29,13 @@ export const DASHBOARD_ROUTES: Routes = [
         path: 'media',
         loadComponent: () => import('./pages/media/media.component').then((m) => m.MediaComponent),
         title: 'Media Gallery - BlogApp',
+      },
+      {
+        path: 'categories',
+        loadComponent: () =>
+          import('./pages/category/category.component').then((m) => m.CategoryComponent),
+        canActivate: [adminGuard],
+        title: 'Category Management - BlogApp',
       },
       // Future dashboard sub-routes
       // {
