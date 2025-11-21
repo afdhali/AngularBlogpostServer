@@ -37,6 +37,33 @@ export const DASHBOARD_ROUTES: Routes = [
         canActivate: [adminGuard],
         title: 'Category Management - BlogApp',
       },
+      {
+        path: 'posts',
+        children: [
+          {
+            path: '',
+            loadComponent: () =>
+              import('./pages/posts/posts.component').then((m) => m.PostsComponent),
+            title: 'Posts Management',
+          },
+          {
+            path: 'create',
+            loadComponent: () =>
+              import('./pages/posts/post-form/post-form.component').then(
+                (m) => m.PostFormComponent
+              ),
+            title: 'Create Post',
+          },
+          {
+            path: 'edit/:id',
+            loadComponent: () =>
+              import('./pages/posts/post-form/post-form.component').then(
+                (m) => m.PostFormComponent
+              ),
+            title: 'Edit Post',
+          },
+        ],
+      },
       // Future dashboard sub-routes
       // {
       //   path: 'posts',

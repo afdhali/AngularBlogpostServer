@@ -1,0 +1,289 @@
+<!-- src/app/features/dashboard/pages/posts/post-form/post-form.component.html -->
+<div class="min-h-screen bg-gray-50">
+  <!-- Header -->
+  <div class="bg-white border-b border-gray-200 sticky top-0 z-10 shadow-sm">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <div class="flex justify-between items-center">
+        <div>
+          <h1 class="text-3xl font-bold text-gray-900">
+            {{ isEditMode() ? '✏️ Edit Post' : '➕ Create New Post' }}
+          </h1>
+          <p class="mt-1 text-sm text-gray-600">
+            {{ isEditMode() ? 'Update your post' : 'Write and publish your blog post' }}
+          </p>
+        </div>
+        <button
+          (click)="cancel()"
+          class="px-4 py-2 text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+          type="button"
+        >
+          ✖️ Cancel
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Form -->
+  <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <form [formGroup]="postForm" (ngSubmit)="onSubmit()" class="space-y-6">
+      <!-- Error Alert -->
+      @if (error()) {
+      <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+        <div class="flex items-center gap-3">
+          <span class="text-2xl">⚠️</span>
+          <p class="text-red-700">{{ error() }}</p>
+        </div>
+      </div>
+      }
+
+      <!-- Title & Slug -->
+      <div class="bg-white rounded-lg shadow-sm p-6 space-y-4">
+        <div>
+          <label for="title" class="block text-sm font-medium text-gray-700 mb-2"
+            >Title <span class="text-red-500">*</span></label
+          >
+          <input
+            id="title"
+            type="text"
+            formControlName="title"
+            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            placeholder="Enter post title..."
+            [class.border-red-500]="hasError('title', 'required') || hasError('title', 'minlength')"
+          />
+          @if (hasError('title', 'required') || hasError('title', 'minlength') || hasError('title',
+          'maxlength')) {
+          <p class="mt-1 text-sm text-red-600">{{ getErrorMessage('title') }}</p>
+          }
+        </div>
+
+        <div>
+          <label for="slug" class="block text-sm font-medium text-gray-700 mb-2"
+            >Slug <span class="text-red-500">*</span></label
+          >
+          <input
+            id="slug"
+            type="text"
+            formControlName="slug"
+            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"
+            placeholder="post-slug-url"
+            [class.border-red-500]="hasError('slug', 'required') || hasError('slug', 'minlength')"
+          />
+          @if (hasError('slug', 'required') || hasError('slug', 'minlength') || hasError('slug',
+          'maxlength')) {
+          <p class="mt-1 text-sm text-red-600">{{ getErrorMessage('slug') }}</p>
+          }
+          <p class="mt-1 text-xs text-gray-500">
+            Auto-generated from title, but you can customize it
+          </p>
+        </div>
+      </div>
+
+      <!-- Content -->
+      <div class="bg-white rounded-lg shadow-sm p-6">
+        <label for="content" class="block text-sm font-medium text-gray-700 mb-2"
+          >Content <span class="text-red-500">*</span></label
+        >
+        <textarea
+          id="content"
+          formControlName="content"
+          rows="15"
+          class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"
+          placeholder="Write your post content here... (supports HTML)"
+          [class.border-red-500]="
+            hasError('content', 'required') || hasError('content', 'minlength')
+          "
+        ></textarea>
+        @if (hasError('content', 'required') || hasError('content', 'minlength')) {
+        <p class="mt-1 text-sm text-red-600">{{ getErrorMessage('content') }}</p>
+        }
+        <p class="mt-1 text-xs text-gray-500">
+          Content will be sanitized on server. You can use HTML tags.
+        </p>
+      </div>
+
+      <!-- Excerpt -->
+      <div class="bg-white rounded-lg shadow-sm p-6">
+        <label for="excerpt" class="block text-sm font-medium text-gray-700 mb-2">Excerpt</label>
+        <textarea
+          id="excerpt"
+          formControlName="excerpt"
+          rows="3"
+          class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          placeholder="Brief summary of your post (optional)"
+          [class.border-red-500]="hasError('excerpt', 'maxlength')"
+        ></textarea>
+        @if (hasError('excerpt', 'maxlength')) {
+        <p class="mt-1 text-sm text-red-600">{{ getErrorMessage('excerpt') }}</p>
+        }
+      </div>
+
+      <!-- Featured Image -->
+      <div class="bg-white rounded-lg shadow-sm p-6">
+        <label class="block text-sm font-medium text-gray-700 mb-3">Featured Image</label>
+
+        @if (selectedFeaturedImage()) {
+        <!-- Image Preview -->
+        <div class="relative inline-block">
+          <img
+            [src]="selectedFeaturedImage()!"
+            alt="Featured image"
+            class="w-full max-w-md h-64 object-cover rounded-lg border-2 border-gray-200"
+          />
+          <button
+            (click)="removeFeaturedImage()"
+            class="absolute top-2 right-2 p-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors shadow-lg"
+            type="button"
+            title="Remove image"
+          >
+            🗑️
+          </button>
+        </div>
+        <div class="mt-3">
+          <button
+            (click)="openMediaPicker()"
+            class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+            type="button"
+          >
+            🔄 Change Image
+          </button>
+        </div>
+        } @else {
+        <!-- No Image -->
+        <button
+          (click)="openMediaPicker()"
+          class="w-full max-w-md border-2 border-dashed border-gray-300 rounded-lg p-12 text-center hover:border-blue-500 hover:bg-blue-50 transition-colors"
+          type="button"
+        >
+          <span class="text-6xl mb-3 block">🖼️</span>
+          <p class="text-sm font-medium text-gray-700">Click to select featured image</p>
+          <p class="text-xs text-gray-500 mt-1">Or upload a new one</p>
+        </button>
+        }
+      </div>
+
+      <!-- Category & Status -->
+      <div class="bg-white rounded-lg shadow-sm p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <label for="category" class="block text-sm font-medium text-gray-700 mb-2"
+            >Category <span class="text-red-500">*</span></label
+          >
+          <select
+            id="category"
+            formControlName="category_id"
+            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            [class.border-red-500]="hasError('category_id', 'required')"
+          >
+            <option value="">Select category</option>
+            @for (cat of categories(); track cat.id) {
+            <option [value]="cat.id">{{ cat.name }}</option>
+            }
+          </select>
+          @if (hasError('category_id', 'required')) {
+          <p class="mt-1 text-sm text-red-600">Category is required</p>
+          }
+        </div>
+
+        <div>
+          <label for="status" class="block text-sm font-medium text-gray-700 mb-2"
+            >Status <span class="text-red-500">*</span></label
+          >
+          <select
+            id="status"
+            formControlName="status"
+            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          >
+            <option value="draft">📝 Draft</option>
+            <option value="published" [disabled]="!isAdmin()">✅ Published</option>
+            <option value="archived">📦 Archived</option>
+          </select>
+          @if (!isAdmin()) {
+          <p class="mt-1 text-xs text-yellow-600">⚠️ Only admins can publish posts directly</p>
+          }
+        </div>
+      </div>
+
+      <!-- Tags -->
+      <div class="bg-white rounded-lg shadow-sm p-6">
+        <label class="block text-sm font-medium text-gray-700 mb-3">Tags</label>
+
+        <!-- Tag Input -->
+        <div class="flex gap-2 mb-4">
+          <input
+            type="text"
+            class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            placeholder="Add tag and press Enter..."
+            [value]="tagInput()"
+            (input)="tagInput.set($any($event.target).value)"
+            (keydown.enter)="$event.preventDefault(); addTag()"
+          />
+          <button
+            (click)="addTag()"
+            class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            type="button"
+          >
+            Add
+          </button>
+        </div>
+
+        <!-- Tags List -->
+        @if (tags().length > 0) {
+        <div class="flex flex-wrap gap-2">
+          @for (tag of tags(); track tag) {
+          <span
+            class="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm flex items-center gap-2"
+          >
+            {{ tag }}
+            <button
+              (click)="removeTag(tag)"
+              class="text-blue-600 hover:text-blue-900 font-bold"
+              type="button"
+            >
+              ✖
+            </button>
+          </span>
+          }
+        </div>
+        } @else {
+        <p class="text-sm text-gray-500 italic">No tags added yet</p>
+        }
+      </div>
+
+      <!-- Submit Buttons -->
+      <div class="bg-white rounded-lg shadow-sm p-6 flex justify-end gap-4">
+        <button
+          (click)="cancel()"
+          type="button"
+          class="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+          [disabled]="isSubmitting()"
+        >
+          Cancel
+        </button>
+        <button
+          type="submit"
+          class="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+          [disabled]="isSubmitting() || postForm.invalid"
+        >
+          @if (isSubmitting()) {
+          <span class="animate-spin">⏳</span>
+          Saving... } @else {
+          <span>💾</span>
+          {{ isEditMode() ? 'Update Post' : 'Create Post' }}
+          }
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Media Picker Modal -->
+@if (showMediaPicker()) {
+<div class="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+  <div class="w-full max-w-6xl max-h-[90vh] overflow-auto">
+    <app-media-picker
+      [config]="mediaPickerConfig"
+      (onSelect)="onMediaSelect($event)"
+      (onCancel)="onMediaCancel()"
+    />
+  </div>
+</div>
+}
