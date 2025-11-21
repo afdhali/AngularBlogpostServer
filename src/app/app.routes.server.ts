@@ -19,17 +19,21 @@ export const serverRoutes: ServerRoute[] = [
   },
 
   // ========================================
-  // BLOG PAGES - SSR (Server)
+  // BLOG PAGES - SSG with Dynamic Routes
   // ========================================
   // SEO critical, need dynamic meta tags
-  // {
-  //   path: 'blog',
-  //   renderMode: RenderMode.Server,
-  // },
-  // {
-  //   path: 'blog/:slug',
-  //   renderMode: RenderMode.Server,
-  // },
+  // Blog list page - prerendered for fast loading
+  {
+    path: 'blog',
+    renderMode: RenderMode.Prerender,
+  },
+  // Blog detail pages - prerendered dynamically
+  // For dynamic SSG, you need to implement getPrerenderParams
+  // or use Server mode for runtime rendering
+  {
+    path: 'blog/:slug',
+    renderMode: RenderMode.Server, // Use Server mode for dynamic content with SEO
+  },
 
   // ========================================
   // AUTH PAGES - CSR (Client)

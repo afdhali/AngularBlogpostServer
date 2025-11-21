@@ -39,13 +39,12 @@ export const routes: Routes = [
   },
 
   // ========================================
-  // BLOG ROUTES (Future Implementation)
+  // BLOG ROUTES (Public - SEO Optimized with SSG)
   // ========================================
-  // {
-  //   path: 'blog',
-  //   loadChildren: () =>
-  //     import('./features/blog/blog.routes').then(m => m.BLOG_ROUTES)
-  // },
+  {
+    path: 'blog',
+    loadChildren: () => import('./features/blog/blog.routes').then((m) => m.BLOG_ROUTES),
+  },
 
   // ========================================
   // 404 NOT FOUND
